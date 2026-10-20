@@ -7,11 +7,33 @@ import Landing from './Landing.jsx'
 function Root() {
   const [view, setView] = useState('landing') // 'landing' | 'app'
   const [tab, setTab] = useState('gis')
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('auth_user')
+      return saved ? JSON.parse(saved) : null
+    } catch {
+      return null
+    }
+  })
 
   if (view === 'landing') {
-    return <Landing onEnter={(t) => { setTab(t); setView('app') }} />
+    return (
+      <Landing
+        onEnter={(t) => { setTab(t); setView('app') }}
+        currentUser={currentUser}
+        setCurrentUser={setCurrentUser}
+      />
+    )
   }
-  return <App key={tab} initialTab={tab} onHome={() => setView('landing')} />
+  return (
+    <App
+      key={tab}
+      initialTab={tab}
+      currentUser={currentUser}
+      setCurrentUser={setCurrentUser}
+      onHome={() => setView('landing')}
+    />
+  )
 }
 
 createRoot(document.getElementById('root')).render(

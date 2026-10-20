@@ -1,17 +1,24 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { MeshGradient, PulsingBorder } from '@paper-design/shaders-react';
 import { motion } from 'framer-motion';
-import { Flame, ArrowUpRight, Map as MapIcon, Cpu, BarChart3, Database } from 'lucide-react';
+import { Flame, ArrowUpRight, Map as MapIcon, Cpu, BarChart3, Database, User, LogIn, UserPlus } from 'lucide-react';
+import AuthModal from './AuthModal';
+import UserProfilePopup from './UserProfilePopup';
 import './landing.css';
 
 const FEATURES = [
-  { icon: MapIcon, title: 'Bản đồ WebGIS', text: 'Ranh giới tỉnh, quận/huyện thật và điểm LST theo thời gian.', tab: 'gis' },
+  { icon: MapIcon, title: 'Bản đồ WebGIS', text: 'Ranh giới 168 phường/xã, trạm đo và phân vùng nhiệt độ LST.', tab: 'gis' },
+  { icon: BarChart3, title: 'Thống kê khu vực', text: 'Biểu đồ thanh ngang và bảng thống kê chi tiết từng xã/phường.', tab: 'statistics' },
   { icon: Cpu, title: 'Huấn luyện AI Lab', text: 'ARIMA, Random Forest, XGBoost và GCN-LSTM.', tab: 'training' },
   { icon: BarChart3, title: 'So sánh mô hình', text: 'MAE, RMSE, R² và MAPE trên cùng một bộ dữ liệu.', tab: 'comparison' },
   { icon: Database, title: 'Dữ liệu viễn thám', text: 'Landsat/MODIS, tiền xử lý và chuỗi thời gian 2021–2026.', tab: 'datasets' },
 ];
 
-export default function Landing({ onEnter }) {
+export default function Landing({ onEnter, currentUser, setCurrentUser }) {
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+  const [profileOpen, setProfileOpen] = useState(false);
+
   // fixed particle positions so they don't jump on every re-render
   const particles = useMemo(
     () => Array.from({ length: 6 }, (_, i) => ({
@@ -21,6 +28,13 @@ export default function Landing({ onEnter }) {
     })),
     []
   );
+
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    setCurrentUser(null);
+    setProfileOpen(false);
+  };
 
   return (
     <div className="lp">
@@ -69,10 +83,58 @@ export default function Landing({ onEnter }) {
           <button onClick={() => onEnter('datasets')}>Dữ liệu</button>
         </nav>
 
-        <button className="lp-login" onClick={() => onEnter('gis')}>
-          Vào hệ thống <ArrowUpRight size={14} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {currentUser ? (
+            <div style={{ position: 'relative' }}>
+              <button
+                className="lp-user-btn"
+                onClick={() => setProfileOpen(!profileOpen)}
+              >
+                <div className="lp-avatar">
+                  {(currentUser.ten_dang_nhap || 'U').substring(0, 2).toUpperCase()}
+                </div>
+                <span className="lp-user-name">{currentUser.ten_dang_nhap}</span>
+              </button>
+              <UserProfilePopup
+                user={currentUser}
+                isOpen={profileOpen}
+                onClose={() => setProfileOpen(false)}
+                onLogout={handleLogout}
+              />
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                className="lp-auth-btn lp-auth-login"
+                onClick={() => { setAuthMode('login'); setAuthOpen(true); }}
+              >
+                <LogIn size={14} />
+                Đăng nhập
+              </button>
+              <button
+                className="lp-auth-btn lp-auth-register"
+                onClick={() => { setAuthMode('register'); setAuthOpen(true); }}
+              >
+                <UserPlus size={14} />
+                Đăng ký
+              </button>
+            </div>
+          )}
+
+          <button className="lp-login" onClick={() => onEnter('gis')}>
+            Vào hệ thống <ArrowUpRight size={14} />
+          </button>
+        </div>
       </header>
+
+      <AuthModal
+        isOpen={authOpen}
+        initialMode={authMode}
+        onClose={() => setAuthOpen(false)}
+        onAuthSuccess={(user) => {
+          setCurrentUser(user);
+        }}
+      />
 
       <main className="lp-main">
         <motion.div
